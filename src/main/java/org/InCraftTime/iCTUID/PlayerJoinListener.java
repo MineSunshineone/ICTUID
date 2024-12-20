@@ -17,6 +17,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class PlayerJoinListener implements Listener {
 
@@ -31,38 +32,51 @@ public class PlayerJoinListener implements Listener {
         this.uidCache = uidCache;
     }
 
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        UUID playerUUID = event.getPlayer().getUniqueId();
-        String playerName = event.getPlayer().getName();
-        String uid = uidCache.get(playerUUID);
+@EventHandler
+public void onPlayerJoin(PlayerJoinEvent event) {
+    Player player = event.getPlayer();
+    UUID playerUUID = player.getUniqueId();
+    String playerName = player.getName();
+    String uid = uidCache.get(playerUUID);
 
-        if (uid == null) {
-            try (Connection connection = plugin.getDatabaseManager().getConnection();
-                 PreparedStatement selectStatement = connection.prepareStatement("SELECT uid FROM players WHERE uuid = ?")) {
+    if (uid == null) {
+        AtomicReference<String> uidRef = new AtomicReference<>();
+        plugin.getDatabaseManager().getConnectionAsync().thenAccept(connection -> {
+            try (PreparedStatement selectStatement = connection.prepareStatement("SELECT uid FROM players WHERE uuid = ?")) {
                 selectStatement.setString(1, playerUUID.toString());
                 ResultSet resultSet = selectStatement.executeQuery();
 
                 if (!resultSet.next()) {
-                    uid = generateUID();
+                    String newUid = generateUID();
                     try (PreparedStatement insertStatement = connection.prepareStatement("INSERT INTO players (uuid, uid) VALUES (?, ?)")) {
                         insertStatement.setString(1, playerUUID.toString());
-                        insertStatement.setString(2, uid);
+                        insertStatement.setString(2, newUid);
                         insertStatement.executeUpdate();
                     }
-                    uidLogger.writeUIDToFile(playerUUID, playerName, uid);
-                    plugin.getServer().broadcastMessage("Player " + playerName + " has been assigned UID: " + uid);
+                    uidLogger.writeUIDToFile(playerUUID, playerName, newUid);
+                    plugin.getServer().broadcastMessage("Player " + playerName + " has been assigned UID: " + newUid);
+                    uidRef.set(newUid);
                 } else {
-                    uid = resultSet.getString("uid");
+                    uidRef.set(resultSet.getString("uid"));
                 }
-                uidCache.put(playerUUID, uid);
+                uidCache.put(playerUUID, uidRef.get());
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-        }
+        }).thenRun(() -> {
+            // 发送可定制消息
+            String customMessage = ChatColor.GREEN + "欢迎加入ICT " + playerName + "! 这个是你在这个服务器独一无二的UID: " + uidRef.get();
+            player.sendMessage(customMessage);
+
+            // 播放声音
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+
+            // 显示烟花效果
+            spawnFireworks(player.getLocation(), 1);
+        });
+    } else {
         // 发送可定制消息
-        Player player = event.getPlayer();
-        String customMessage = ChatColor.GREEN + "Welcome " + playerName + "! Your unique UID is: " + uid;
+        String customMessage = ChatColor.GREEN + "欢迎加入ICT  " + playerName + "! 这个是你在这个服务器独一无二的UID:" + uid;
         player.sendMessage(customMessage);
 
         // 播放声音
@@ -71,7 +85,7 @@ public class PlayerJoinListener implements Listener {
         // 显示烟花效果
         spawnFireworks(player.getLocation(), 1);
     }
-
+}
     private int getPlayerCount(Connection connection) throws SQLException {
         try (PreparedStatement countStatement = connection.prepareStatement("SELECT COUNT(*) AS count FROM players")) {
             ResultSet resultSet = countStatement.executeQuery();

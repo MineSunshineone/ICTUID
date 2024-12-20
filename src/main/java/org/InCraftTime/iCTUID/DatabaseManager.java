@@ -1,6 +1,8 @@
 package org.InCraftTime.iCTUID;
 
 import java.sql.*;
+import java.util.concurrent.CompletableFuture;
+
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -21,13 +23,27 @@ public class DatabaseManager {
         dataSource = new HikariDataSource(config);
     }
 
-    public Connection getConnection() throws SQLException {
-        return dataSource.getConnection();
+    public CompletableFuture<Connection> getConnectionAsync() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return dataSource.getConnection();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public void closeDataSource() {
         if (dataSource != null) {
             dataSource.close();
+        }
+    }
+
+    public Connection getConnection() {
+        try {
+            return dataSource.getConnection();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 }

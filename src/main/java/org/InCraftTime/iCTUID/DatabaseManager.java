@@ -1,40 +1,33 @@
 package org.InCraftTime.iCTUID;
 
 import java.sql.*;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 public class DatabaseManager {
 
     private final ICTUID plugin;
-    private Connection connection;
+    private HikariDataSource dataSource;
 
     public DatabaseManager(ICTUID plugin) {
         this.plugin = plugin;
-        setupDatabase();
+        setupDataSource();
     }
 
- private void setupDatabase() {
-    try {
-        connection = DriverManager.getConnection("jdbc:sqlite:plugins/ICTUID/players.db");
-        try (Statement statement = connection.createStatement()) {
-            statement.executeUpdate("CREATE TABLE IF NOT EXISTS players (uuid TEXT PRIMARY KEY, uid TEXT)");
-            statement.executeUpdate("CREATE TABLE IF NOT EXISTS uid_history (uuid TEXT, old_uid TEXT, new_uid TEXT, change_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
-        }
-    } catch (SQLException e) {
-        e.printStackTrace();
-    }
-}
-
-    public Connection getConnection() {
-        return connection;
+    private void setupDataSource() {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl("jdbc:sqlite:plugins/ICTUID/players.db");
+        config.setMaximumPoolSize(10);
+        dataSource = new HikariDataSource(config);
     }
 
-    public void closeConnection() {
-        if (connection != null) {
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+    public Connection getConnection() throws SQLException {
+        return dataSource.getConnection();
+    }
+
+    public void closeDataSource() {
+        if (dataSource != null) {
+            dataSource.close();
         }
     }
 }

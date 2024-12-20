@@ -17,11 +17,13 @@ public class CommandHandler implements CommandExecutor {
     private final ICTUID plugin;
     private final DatabaseManager databaseManager;
     private final UIDLogger uidLogger;
+    private final UIDCache uidCache;
 
-    public CommandHandler(ICTUID plugin, DatabaseManager databaseManager, UIDLogger uidLogger) {
+    public CommandHandler(ICTUID plugin, DatabaseManager databaseManager, UIDLogger uidLogger, UIDCache uidCache) {
         this.plugin = plugin;
         this.databaseManager = databaseManager;
         this.uidLogger = uidLogger;
+        this.uidCache = uidCache;
     }
 
     @Override
@@ -81,11 +83,15 @@ public class CommandHandler implements CommandExecutor {
             }
             Player player = Bukkit.getPlayer(args[0]);
             if (player == null) {
-                sender.sendMessage("玩家不存在");
+                sender.sendMessage("Player not found");
                 return false;
             }
-            String uid = getPlayerUID(player.getUniqueId());
-            sender.sendMessage("玩家 " + player.getName() + " 的UID是这个: " + uid);
+            String uid = uidCache.get(player.getUniqueId());
+            if (uid == null) {
+                uid = getPlayerUID(player.getUniqueId());
+                uidCache.put(player.getUniqueId(), uid);
+            }
+            sender.sendMessage("Player " + player.getName() + " UID: " + uid);
             return true;
         }
         if (command.getName().equalsIgnoreCase("queryuidhistory")) {
@@ -104,9 +110,9 @@ public class CommandHandler implements CommandExecutor {
         return false;
     }
 
-    private void changePlayerUIDAsync(UUID playerUUID, String newUID) {
+    public void changePlayerUIDAsync(UUID playerUUID, String newUID) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection connection = databaseManager.getConnection();
+            try (Connection connection = plugin.getDatabaseManager().getConnection();
                  PreparedStatement selectStatement = connection.prepareStatement("SELECT uid FROM players WHERE uuid = ?");
                  PreparedStatement updateStatement = connection.prepareStatement("UPDATE players SET uid = ? WHERE uuid = ?");
                  PreparedStatement insertHistoryStatement = connection.prepareStatement("INSERT INTO uid_history (uuid, old_uid, new_uid) VALUES (?, ?, ?)")) {
@@ -122,10 +128,6 @@ public class CommandHandler implements CommandExecutor {
                     insertHistoryStatement.setString(3, newUID);
                     insertHistoryStatement.executeUpdate();
                     plugin.log("玩家 " + playerUUID + " 的 UID 已更改为 " + newUID);
-                    Player player = Bukkit.getPlayer(playerUUID);
-                    if (player != null) {
-                        uidLogger.writeUIDToFile(playerUUID, player.getName(), newUID);
-                    }
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -147,7 +149,7 @@ public class CommandHandler implements CommandExecutor {
         return "UID not found";
     }
 
-    private void queryUIDHistory(CommandSender sender, UUID playerUUID) {
+        private void queryUIDHistory(CommandSender sender, UUID playerUUID) {
         try (Connection connection = databaseManager.getConnection();
              PreparedStatement selectStatement = connection.prepareStatement("SELECT old_uid, new_uid, change_time FROM uid_history WHERE uuid = ?")) {
             selectStatement.setString(1, playerUUID.toString());

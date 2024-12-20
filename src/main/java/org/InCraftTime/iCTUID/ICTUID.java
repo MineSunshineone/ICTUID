@@ -34,7 +34,7 @@ public final class ICTUID extends JavaPlugin {
     @Override
     public void onDisable() {
         log("插件已关闭");
-        databaseManager.closeConnection();
+        databaseManager.closeDataSource();
     }
 
     public void log(String message) {
@@ -91,5 +91,9 @@ public final class ICTUID extends JavaPlugin {
 
     public String getMessage(String key) {
         return getConfig().getString(key, "默认消息");
+    }
+
+    public DatabaseManager getDatabaseManager() {
+        return databaseManager;
     }
 }

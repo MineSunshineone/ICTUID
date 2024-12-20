@@ -31,7 +31,6 @@ public final class ICTUID extends JavaPlugin {
             new ICTUIDPlaceholderExpansion(this).register();
         }
     }
-
     @Override
     public void onDisable() {
         log("插件已关闭");

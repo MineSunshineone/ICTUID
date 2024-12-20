@@ -1,8 +1,15 @@
 package org.InCraftTime.iCTUID;
 
+import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
+import org.bukkit.FireworkEffect;
+import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.entity.Firework;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.inventory.meta.FireworkMeta;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -24,6 +31,7 @@ public class PlayerJoinListener implements Listener {
         this.uidCache = uidCache;
     }
 
+    @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         UUID playerUUID = event.getPlayer().getUniqueId();
         String playerName = event.getPlayer().getName();
@@ -52,6 +60,16 @@ public class PlayerJoinListener implements Listener {
                 e.printStackTrace();
             }
         }
+        // 发送可定制消息
+        Player player = event.getPlayer();
+        String customMessage = ChatColor.GREEN + "Welcome " + playerName + "! Your unique UID is: " + uid;
+        player.sendMessage(customMessage);
+
+        // 播放声音
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+
+        // 显示烟花效果
+        spawnFireworks(player.getLocation(), 1);
     }
 
     private int getPlayerCount(Connection connection) throws SQLException {
@@ -102,5 +120,22 @@ public class PlayerJoinListener implements Listener {
             e.printStackTrace();
         }
         return false;
+    }
+
+    private void spawnFireworks(Location location, int amount) {
+        for (int i = 0; i < amount; i++) {
+            Firework firework = location.getWorld().spawn(location, Firework.class);
+            FireworkMeta meta = firework.getFireworkMeta();
+            meta.addEffect(FireworkEffect.builder()
+                    .withColor(org.bukkit.Color.RED)
+                    .withColor(org.bukkit.Color.GREEN)
+                    .withColor(org.bukkit.Color.BLUE)
+                    .with(FireworkEffect.Type.BALL)
+                    .withFlicker()
+                    .withTrail()
+                    .build());
+            meta.setPower(1);
+            firework.setFireworkMeta(meta);
+        }
     }
 }

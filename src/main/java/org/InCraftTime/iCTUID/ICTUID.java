@@ -19,8 +19,9 @@ public final class ICTUID extends JavaPlugin {
         log("插件已启动");
         databaseManager = new DatabaseManager(this);
         uidLogger = new UIDLogger(this);
-        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, uidLogger), this);
-        CommandHandler commandHandler = new CommandHandler(this, databaseManager, uidLogger);
+        UIDCache uidCache = new UIDCache(); // 初始化 UIDCache
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, uidLogger, uidCache), this);
+        CommandHandler commandHandler = new CommandHandler(this, databaseManager, uidLogger, uidCache); // 传递 UIDCache
         getCommand("reload").setExecutor(commandHandler);
         getCommand("changeuid").setExecutor(commandHandler);
         getCommand("backupdata").setExecutor(commandHandler);

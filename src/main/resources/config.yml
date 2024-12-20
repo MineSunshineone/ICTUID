@@ -1,0 +1,10 @@
+# Default configuration for ICTUID plugin
+database:
+  path: "plugins/ICTUID/players.db"
+messages:
+  reload: "插件配置已重新加载"
+  changeuid_usage: "用法: /changeuid <player> <newUID>"
+  player_not_found: "玩家未找到"
+  uid_changed: "玩家 %player% 的 UID 已更改为 %newUID%"
+  uid_not_found: "UID not found"
+uid_counter: 101

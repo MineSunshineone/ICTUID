@@ -1,0 +1,29 @@
+name: ICTUID
+version: '1.0-SNAPSHOT'
+main: org.InCraftTime.iCTUID.ICTUID
+author: MineSunshineone
+api-version: '1.21'
+load: STARTUP
+
+softdepend: [PlaceholderAPI]
+
+commands:
+  changeuid:
+    description: "更改玩家的 UID"
+    usage: "/changeuid <player> <newUID>"
+    permission: "ictuid.changeuid"
+    permission-message: "你没有权限使用此命令"
+  reload:
+    description: "重新加载插件配置"
+    usage: "/reload"
+    permission: "ictuid.reload"
+    permission-message: "你没有权限使用此命令"
+
+permissions:
+  ictuid.changeuid:
+    description: "允许用户更改玩家的 UID"
+    default: op
+  ictuid.reload:
+    description: "允许用户重新加载插件配置"
+    default: op
+

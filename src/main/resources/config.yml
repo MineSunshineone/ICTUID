@@ -8,3 +8,6 @@ messages:
   uid_changed: "玩家 %player% 的 UID 已更改为 %newUID%"
   uid_not_found: "UID not found"
 uid_counter: 101
+uid_allocation:
+  allow_duplicate: false
+  custom_rule: "[A-Za-z0-9]{4,10}"
